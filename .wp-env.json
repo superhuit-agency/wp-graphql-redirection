@@ -1,0 +1,13 @@
+{
+  "phpVersion": "8.1",
+  "plugins": [
+    ".",
+    "https://downloads.wordpress.org/plugin/redirection.5.3.6.zip",
+    "https://downloads.wordpress.org/plugin/wp-graphql.1.13.7.zip"
+  ],
+	"env": {
+    "development": {
+      "port": 80
+    }
+	}
+}

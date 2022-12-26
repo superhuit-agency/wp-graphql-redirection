@@ -1,0 +1,67 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: WPGraphQL Redirection\n"
+"POT-Creation-Date: 2022-12-26 16:11+0100\n"
+"PO-Revision-Date: 2022-12-26 16:11+0100\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Poedit 3.2\n"
+"X-Poedit-Basepath: .\n"
+"X-Poedit-Flags-xgettext: --add-comments=translators:\n"
+"X-Poedit-WPHeader: wp-graphql-redirection.php\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
+"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;"
+"_n_noop:1,2;_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: *.min.js\n"
+"X-Poedit-SearchPathExcluded-1: vendor\n"
+
+#: include/Type/ObjectType/RedirectionItem.php:14
+msgid "An Post Type object"
+msgstr "Un object Post Type"
+
+#: wp-graphql-redirection.php:148
+msgid ""
+"Unique Resource Identifier in the form of a path or permalink for a node. "
+"Ex: \"/hello-world\""
+msgstr ""
+"Identificateur de ressource unique sous la forme d’un chemin ou d’un lien "
+"permanent pour un nœud. Ex: « /hello-world »"
+
+#: wp-graphql-redirection.php:151
+msgid "List of redirections."
+msgstr "Liste des redirections."
+
+#: wp-graphql-redirection.php:216
+msgid ""
+"Both WPGraphQL (v1.8+) and Redirection (v5.7+) plugins must be active for "
+"\"wp-graphql-redirection\" to work"
+msgstr ""
+"Les plug-ins WPGraphQL (v1.8+) et Redirection (v5.7+) doivent être actifs "
+"pour que « wp-graphql-redirection » fonctionne"
+
+#. Plugin Name of the plugin/theme
+msgid "WPGraphQL Redirection"
+msgstr "WPGraphQL Redirection"
+
+#. Plugin URI of the plugin/theme
+msgid "https://github.com/superhuit-agency/wp-graphql-redirection"
+msgstr "https://github.com/superhuit-agency/wp-graphql-redirection"
+
+#. Description of the plugin/theme
+msgid "Exposes Redirection plugin in the GraphQL schema."
+msgstr "Expose le plugin de redirection dans le schéma GraphQL."
+
+#. Author of the plugin/theme
+msgid "superhuit"
+msgstr "superhuit"
+
+#. Author URI of the plugin/theme
+msgid "https://www.superhuit.ch"
+msgstr "https://www.superhuit.ch"

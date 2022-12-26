@@ -1,0 +1,39 @@
+{
+    "name": "superhuit-agency/wp-graphql-redirection",
+    "description": "Exposes Redirection WP plugin in the WP-GraphQL schema",
+    "type": "wordpress-plugin",
+    "authors": [
+        {
+            "name": "superhuit",
+            "email": "tech@superhuit.ch"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "WPGraphQLRedirection\\": "include/"
+        },
+        "classmap": [
+            "include/"
+        ]
+    },
+    "repositories":[
+        {
+            "type":"composer",
+            "url":"https://wpackagist.org",
+            "only": [
+                "wpackagist-plugin/*",
+                "wpackagist-theme/*"
+            ]
+        }
+    ],
+    "config": {
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "composer/installers": false
+        }
+    },
+    "require-dev": {
+        "wp-graphql/wp-graphql": "^1.8",
+        "wpackagist-plugin/redirection": "^5.3"
+    }
+}
