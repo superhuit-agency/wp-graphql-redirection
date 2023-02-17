@@ -5,7 +5,7 @@
  * Description:       Exposes Redirection plugin in the GraphQL schema.
  * Author:            superhuit
  * Author URI:        https://www.superhuit.ch
- * Version:           1.0.0
+ * Version:           1.0.1
  * Requires PHP:      7.4
  * Text Domain:       wpgraphql-redirection
  * Requires at least: 5.0
@@ -14,7 +14,7 @@
  * @package WPGraphQLRedirection
  * @category Core
  * @author Superhuit, Kuuak
- * @version 1.0.0
+ * @version 1.0.1
  */
 
 namespace WPGraphQLRedirection;
