@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "56939395d76723582801756734da5f22",
+    "content-hash": "d9636bfea87ecfad61fa4fdc4f0069d1",
     "packages": [],
     "packages-dev": [
         {
@@ -311,16 +311,16 @@
         },
         {
             "name": "wp-graphql/wp-graphql",
-            "version": "v1.13.7",
+            "version": "v1.13.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/wp-graphql/wp-graphql.git",
-                "reference": "87f7bb3488e9d87f8b545fd7d7774e4bf96a2d69"
+                "reference": "24e4ced11a3ea5478baabd0f2db146e60422ab68"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/wp-graphql/wp-graphql/zipball/87f7bb3488e9d87f8b545fd7d7774e4bf96a2d69",
-                "reference": "87f7bb3488e9d87f8b545fd7d7774e4bf96a2d69",
+                "url": "https://api.github.com/repos/wp-graphql/wp-graphql/zipball/24e4ced11a3ea5478baabd0f2db146e60422ab68",
+                "reference": "24e4ced11a3ea5478baabd0f2db146e60422ab68",
                 "shasum": ""
             },
             "require": {
@@ -384,21 +384,21 @@
             "description": "GraphQL API for WordPress",
             "support": {
                 "issues": "https://github.com/wp-graphql/wp-graphql/issues",
-                "source": "https://github.com/wp-graphql/wp-graphql/tree/v1.13.7"
+                "source": "https://github.com/wp-graphql/wp-graphql/tree/v1.13.9"
             },
-            "time": "2022-12-09T16:48:50+00:00"
+            "time": "2023-02-15T23:48:12+00:00"
         },
         {
             "name": "wpackagist-plugin/redirection",
-            "version": "5.3.6",
+            "version": "5.3.9",
             "source": {
                 "type": "svn",
                 "url": "https://plugins.svn.wordpress.org/redirection/",
-                "reference": "tags/5.3.6"
+                "reference": "tags/5.3.9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://downloads.wordpress.org/plugin/redirection.5.3.6.zip"
+                "url": "https://downloads.wordpress.org/plugin/redirection.5.3.9.zip"
             },
             "require": {
                 "composer/installers": "^1.0 || ^2.0"
@@ -412,7 +412,9 @@
     "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": [],
+    "platform": {
+        "php": "^7.4 || ^8.0"
+    },
     "platform-dev": [],
     "plugin-api-version": "2.3.0"
 }
