@@ -5,7 +5,7 @@
  * Description:       Exposes Redirection plugin in the GraphQL schema.
  * Author:            superhuit
  * Author URI:        https://www.superhuit.ch
- * Version:           1.0.1
+ * Version:           1.0.0
  * Requires PHP:      7.4
  * Text Domain:       wpgraphql-redirection
  * Requires at least: 5.0
@@ -14,12 +14,13 @@
  * @package WPGraphQLRedirection
  * @category Core
  * @author Superhuit, Kuuak
- * @version 1.0.1
+ * @version 1.0.0
  */
 
 namespace WPGraphQLRedirection;
 
 use Red_Item;
+use WPGraphQL\Type\InterfaceType\NodeWithIsRedirected;
 use WPGraphQLRedirection\Type\ObjectType\RedirectionItem;
 use WPGraphQLRedirection\Model\RedirectionItem as RedirectionItemModel;
 
@@ -138,6 +139,7 @@ class WPGraphQLRedirection {
 	public function register_types() {
 
 		RedirectionItem::register_type();
+		NodeWithIsRedirected::register_type();
 
 		register_graphql_field( 'RootQuery', 'redirections', [
 			'type'        => [ 'list_of' => 'RedirectionItemType' ],
@@ -167,6 +169,7 @@ class WPGraphQLRedirection {
 			},
 		] );
 
+		register_graphql_interfaces_to_types( ['NodeWithIsRedirected'], ['UniformResourceIdentifiable'] );
 	}
 
 	/**
