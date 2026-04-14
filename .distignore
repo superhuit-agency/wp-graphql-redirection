@@ -1,0 +1,10 @@
+.distignore
+.editorconfig
+.git
+.gitignore
+.github
+.vscode
+.wp-env.json
+composer.json
+composer.lock
+wp-graphql-redirection.pot
