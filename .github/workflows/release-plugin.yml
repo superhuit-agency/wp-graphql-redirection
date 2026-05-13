@@ -14,7 +14,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       
       # PHP Composer dependencies
       - uses: shivammathur/setup-php@v2
@@ -24,7 +24,7 @@ jobs:
         env:
           COMPOSER_TOKEN: ${{ github.token }}
       - id: composer-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: vendor
           key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
@@ -46,15 +46,73 @@ jobs:
             --exclude composer.lock \
             --exclude wp-graphql-redirection.pot \
             . ./wp-graphql-redirection
-          
-      - name: Archive Release
-        uses: montudor/action-zip@v1
-        with:
-          args: zip -qq -r wp-graphql-redirection.zip wp-graphql-redirection
 
-      - uses: "marvinpinto/action-automatic-releases@latest"
+      - name: Set up git-cliff
+        uses: kenji-miyake/setup-git-cliff@v2
+
+      - name: Generate project changelog for package
+        shell: bash
+        run: |
+          git-cliff --config cliff.toml --strip all --output wp-graphql-redirection/CHANGELOG.md
+
+      - name: Generate release notes
+        shell: bash
+        run: |
+          git-cliff --config cliff.toml --current --strip all --output release-notes.md
+          
+      - name: Archive release
+        shell: bash
+        run: zip -qq -r wp-graphql-redirection.zip wp-graphql-redirection
+
+      - name: Upload release ZIP artifact
+        uses: actions/upload-artifact@v7
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: false
-          files: |
-            wp-graphql-redirection.zip
+          name: wp-graphql-redirection-zip
+          path: wp-graphql-redirection.zip
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PRERELEASE_FLAG=''
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            PRERELEASE_FLAG='--prerelease'
+          fi
+
+          gh release create "${GITHUB_REF_NAME}" \
+            wp-graphql-redirection.zip \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file release-notes.md \
+            --latest=false \
+            ${PRERELEASE_FLAG}
+
+  publish-release-belt:
+    name: Publish ZIP to Release Belt
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download release ZIP artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: wp-graphql-redirection-zip
+          path: .
+
+      - name: Upload ZIP to Release Belt (optional)
+        uses: ./.github/actions/publish-release-belt
+        with:
+          release_tag: ${{ github.ref_name }}
+          zip_file: wp-graphql-redirection.zip
+          package_slug: wp-graphql-redirection
+          package_vendor: superhuit
+          package_type: wordpress-plugin
+          user: ${{ secrets.RELEASE_BELT_USER }}
+          host: ${{ secrets.RELEASE_BELT_HOST }}
+          port: ${{ secrets.RELEASE_BELT_PORT }}
+          ssh_key: ${{ secrets.RELEASE_BELT_PUBLISH_PRIVATE_KEY }}
+          root_path: ${{ secrets.RELEASE_BELT_PATH }}

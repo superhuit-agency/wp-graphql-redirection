@@ -1,0 +1,71 @@
+name: "Publish ZIP to Release Belt"
+description: "Upload a tagged release ZIP to a Release Belt instance over SSH/rsync"
+
+inputs:
+  release_tag:
+    description: "Git tag (e.g. v1.0.0)"
+    required: true
+  zip_file:
+    description: "Path to built plugin ZIP file"
+    required: false
+    default: "intranet-protection.zip"
+  package_slug:
+    description: "Package slug used in Release Belt filename"
+    required: false
+    default: "intranet-protection"
+  package_vendor:
+    description: "Vendor segment in Release Belt releases path"
+    required: false
+    default: "superhuit"
+  package_type:
+    description: "Type segment in Release Belt releases path"
+    required: false
+    default: "wordpress-plugin"
+  host:
+    description: "Release Belt SSH host"
+    required: false
+  user:
+    description: "Release Belt SSH user"
+    required: false
+  port:
+    description: "Release Belt SSH port"
+    required: false
+    default: "22"
+  ssh_key:
+    description: "Private SSH key content"
+    required: false
+  root_path:
+    description: "Release Belt root path on server"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Upload ZIP
+      if: ${{ inputs.host != '' && inputs.user != '' && inputs.ssh_key != '' && inputs.root_path != '' }}
+      shell: bash
+      run: |
+        VERSION="${{ inputs.release_tag }}"
+        RELEASE_BELT_ZIP="${{ inputs.package_slug }}.${VERSION}.zip"
+
+        cp "${{ inputs.zip_file }}" "${RELEASE_BELT_ZIP}"
+
+        BASE_PATH="${{ inputs.root_path }}"
+        BASE_PATH="${BASE_PATH%/}"
+        TARGET_DIR="${BASE_PATH}/releases/${{ inputs.package_type }}/${{ inputs.package_vendor }}"
+
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        printf '%s\n' "${{ inputs.ssh_key }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan -p "${{ inputs.port }}" -H "${{ inputs.host }}" >> ~/.ssh/known_hosts
+        chmod 644 ~/.ssh/known_hosts
+
+        ssh -p "${{ inputs.port }}" "${{ inputs.user }}@${{ inputs.host }}" "mkdir -p '${TARGET_DIR}'"
+        rsync -avz -e "ssh -p ${{ inputs.port }}" "${RELEASE_BELT_ZIP}" "${{ inputs.user }}@${{ inputs.host }}:${TARGET_DIR}/"
+
+    - name: Skip upload (missing required inputs)
+      if: ${{ inputs.host == '' || inputs.user == '' || inputs.ssh_key == '' || inputs.root_path == '' }}
+      shell: bash
+      run: |
+        echo "Skipping Release Belt upload: required inputs are missing."
