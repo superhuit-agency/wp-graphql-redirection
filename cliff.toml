@@ -1,0 +1,50 @@
+[changelog]
+header = ""
+body = """
+{% if version %}
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}
+## [unreleased]
+{% endif %}
+
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+{% for commit in commits %}
+- {% if commit.scope %}*({{ commit.scope }})* {% endif %}{{ commit.message | upper_first }} ([`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/superhuit-agency/intranet-protection/commit/{{ commit.id }}))
+{% endfor %}
+{% endfor %}
+"""
+footer = ""
+trim = true
+render_always = true
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+require_conventional = false
+split_commits = false
+
+commit_preprocessors = [
+	{ pattern = '^:\w+:\s*', replace = "" },
+	{ pattern = '^[^a-z]+', replace = "" },
+]
+
+commit_parsers = [
+	{ message = "^ship", skip = true },
+	{ message = "^feat", group = "✨ Features" },
+	{ message = "^fix", group = "🐛 Bug Fixes" },
+	{ message = "^chore", group = "🔧 Chores" },
+	{ message = "^refactor", group = "♻️ Refactor" },
+	{ message = "^perf", group = "⚡ Performance" },
+	{ message = "^docs?", group = "📚 Documentation" },
+	{ message = "^test", group = "🧪 Testing" },
+	{ message = "^ci", group = "👷‍♂️ CI" },
+	{ message = "^revert", group = "⏪ Reverts" },
+	{ message = ".*", group = "💼 Other" },
+]
+
+protect_breaking_commits = false
+filter_commits = false
+tag_pattern = "v[0-9].*"
+topo_order = false
+sort_commits = "oldest"
