@@ -33,6 +33,7 @@ class RedirectionItem extends Model {
 	 * Redirection Item constructor.
 	 *
 	 * @param array $item The incoming redirection item to be modeled
+	 * @param string|null $uri The source URI to redirect from
 	 *
 	 * @throws \Exception Throws Exception.
 	 */
@@ -59,6 +60,9 @@ class RedirectionItem extends Model {
 				},
 				'url' => function() {
 					return $this->data->get_url();
+				},
+				'isRegex' => function() {
+					return $this->data->is_regex();
 				},
 			];
 

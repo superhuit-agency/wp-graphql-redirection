@@ -14,9 +14,10 @@ class RedirectionItem {
 			'description' => __( 'An Post Type object', 'wpgraphql-redirection' ),
 			'interfaces'  => [],
 			'fields'      => [
-				'code'   => [ 'type' => 'Int' ],
-				'target' => [ 'type' => 'String' ],
-				'url'    => [ 'type' => 'String' ],
+				'code'    => [ 'type' => 'Int' ],
+				'target'  => [ 'type' => 'String' ],
+				'url'     => [ 'type' => 'String' ],
+				'isRegex' => [ 'type' => 'Boolean' ],
 			]
 		]);
 	}
