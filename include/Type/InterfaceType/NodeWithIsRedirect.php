@@ -27,6 +27,12 @@ class NodeWithIsRedirected {
 							 */
 							$isRedirected = false;
 							$original_url = $source->link;
+
+							// A node without a link cannot be redirected.
+							if ( empty( $original_url ) ) {
+								return false;
+							}
+
 							$decoded_url  = rawurldecode( $original_url );
 
 							$items = Red_Item::get_for_matched_url( $decoded_url );
