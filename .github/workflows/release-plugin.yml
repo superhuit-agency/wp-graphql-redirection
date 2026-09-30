@@ -15,9 +15,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          # git-cliff needs the full history and tags to build the changelog
+          fetch-depth: 0
       
       # PHP Composer dependencies
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@v2.37.2
         with:
           php-version: '7.4'
           coverage: none
