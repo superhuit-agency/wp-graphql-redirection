@@ -8,11 +8,11 @@ inputs:
   zip_file:
     description: "Path to built plugin ZIP file"
     required: false
-    default: "intranet-protection.zip"
+    default: "wp-graphql-redirection.zip"
   package_slug:
     description: "Package slug used in Release Belt filename"
     required: false
-    default: "intranet-protection"
+    default: "wp-graphql-redirection"
   package_vendor:
     description: "Vendor segment in Release Belt releases path"
     required: false
