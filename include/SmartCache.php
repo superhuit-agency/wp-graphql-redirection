@@ -21,8 +21,8 @@ use GraphQL\Language\Parser;
  *
  * Nothing purges that tag when a redirect changes, so it is dropped, and responses
  * selecting `redirections` are no longer object-cached: they would otherwise go stale
- * (an empty result keeps hiding a redirect added later). The lookup itself is one
- * indexed query, so caching it gains little.
+ * (an empty result keeps hiding a redirect added later). The lookup itself is a
+ * single query (which Redirection can cache itself), so caching the response gains little.
  *
  * @see https://github.com/superhuit-agency/wp-graphql-redirection/issues/8
  */
@@ -243,8 +243,8 @@ class SmartCache {
 			return $param->query;
 		}
 
-		// Smart Cache resolves HTTP persisted queries into `query` before execution,
-		// but not those run through `graphql()`, which only carry a `queryId`.
+		// Smart Cache resolves a single operation's `queryId` into `query` before execution,
+		// but not those of batched operations, nor the `documentId` / `id` aliases.
 		if ( empty( $param->queryId ) || ! is_string( $param->queryId ) || ! class_exists( 'WPGraphQL\SmartCache\Document' ) ) {
 			return null;
 		}

@@ -46,7 +46,9 @@ query getTheRedirection($uri: String!) {
 
 ## WPGraphQL Smart Cache
 
-When [WPGraphQL Smart Cache](https://wordpress.org/plugins/wpgraphql-smart-cache/) is active, queries selecting `redirections` are not object-cached, and they are not tagged with the `list:redirectionitemtype` list type. Frontends usually look up `redirections(uri:)` on every page render, so that shared cache collection would otherwise grow with every URL rendered, and nothing purges it when a redirect changes. Redirects take effect on the next lookup.
+When [WPGraphQL Smart Cache](https://wordpress.org/plugins/wpgraphql-smart-cache/) is active, queries selecting `redirections` are not object-cached, and they are not tagged with the `list:redirectionitemtype` list type. Frontends usually look up `redirections(uri:)` on every page render, so that shared cache collection would otherwise grow with every URL rendered, and nothing purges it when a redirect changes. Redirects take effect on the next lookup that reaches WordPress (a network cache in front of GET requests still keeps responses for their max-age).
+
+Keep the lookup in its own request: a query mixing `redirections` with other root fields isn't object-cached either, yet Smart Cache still maps its key, once per URI, into the collections of those other fields.
 
 ## Tests
 

@@ -95,6 +95,26 @@ check( 'batch with one operation selecting it', true, SmartCache::request_select
 check( 'batch with no operation selecting it', false, SmartCache::request_selects_redirections( request( [ params( $page ), params( $page ) ] ) ) );
 check( 'operation name is honoured', false, SmartCache::request_selects_redirections( request( params( "query A { posts { nodes { id } } }\nquery B { redirections { code } }", 'A' ) ) ) );
 check( 'persisted query without Smart Cache', false, SmartCache::request_selects_redirections( request( OperationParams::create( [ 'queryId' => 'abc' ] ) ) ) );
+// Stub of Smart Cache's persisted query store.
+class StubDocument {
+	public static $documents = [];
+	public function get( $query_id ) {
+		if ( 'throws' === $query_id ) {
+			throw new RuntimeException( 'db error' );
+		}
+		return self::$documents[ $query_id ] ?? null;
+	}
+}
+class_alias( 'StubDocument', 'WPGraphQL\SmartCache\Document' );
+StubDocument::$documents = [ 'lookup' => $redirections, 'page' => $page ];
+
+check( 'persisted query selecting it', true, SmartCache::request_selects_redirections( request( OperationParams::create( [ 'queryId' => 'lookup' ] ) ) ) );
+check( 'persisted query by documentId alias', true, SmartCache::request_selects_redirections( request( OperationParams::create( [ 'documentId' => 'lookup' ] ) ) ) );
+check( 'persisted query not selecting it', false, SmartCache::request_selects_redirections( request( OperationParams::create( [ 'queryId' => 'page' ] ) ) ) );
+check( 'batch of persisted queries', true, SmartCache::request_selects_redirections( request( [ OperationParams::create( [ 'queryId' => 'page' ] ), OperationParams::create( [ 'queryId' => 'lookup' ] ) ] ) ) );
+check( 'unknown persisted query', false, SmartCache::request_selects_redirections( request( OperationParams::create( [ 'queryId' => 'missing' ] ) ) ) );
+check( 'persisted query lookup failure', false, SmartCache::request_selects_redirections( request( OperationParams::create( [ 'queryId' => 'throws' ] ) ) ) );
+check( 'query string wins over queryId', false, SmartCache::request_selects_redirections( request( OperationParams::create( [ 'query' => $page, 'queryId' => 'lookup' ] ) ) ) );
 check( 'null request', false, SmartCache::request_selects_redirections( null ) );
 check( 'request without params', false, SmartCache::request_selects_redirections( new stdClass() ) );
 
