@@ -43,3 +43,5 @@ query getTheRedirection($uri: String!) {
   }
 }
 ```
+
+`redirections` only returns active redirects, the ones Redirection serves on WordPress: enabled redirects, in enabled groups of the WordPress module. Disabled redirects, and redirects in disabled groups or in Apache/Nginx groups, are left out.
