@@ -189,7 +189,7 @@ class WPGraphQLRedirection {
 		}
 
 		// Is Redirection active?
-		if ( ! class_exists( 'RED_ITEM' ) ) {
+		if ( ! class_exists( 'Red_Item' ) ) {
 			return false;
 		}
 
