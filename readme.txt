@@ -15,8 +15,9 @@ Exposes Redirection plugin in the GraphQL schema.
 == Changelog ==
 
 = 2.0.3 =
-* Security: only expose active WordPress-module redirects in `redirections` and `isRedirected` (disabled redirects and redirects from disabled or Apache/Nginx groups are no longer returned), and stop GraphQL lookups from recording hits on hidden redirects.
-* Fix unbounded WPGraphQL Smart Cache collection growth caused by `redirections(uri:)` lookups, and skip the object cache for those queries so new redirects apply immediately.
+* Security: only expose active redirects (enabled, in enabled groups of the WordPress module) in redirections and isRedirected. Disabled redirects and redirects in disabled or Apache/Nginx groups are no longer listed, and isRedirected ignores them.
+* GraphQL lookups no longer record hits on hidden redirects.
+* Fix unbounded WPGraphQL Smart Cache growth caused by redirections lookups, and skip the object cache for those queries so new redirects are picked up on the next lookup.
 * Harden the release pipeline.
 
 = 2.0.2 =
