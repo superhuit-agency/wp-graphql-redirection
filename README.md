@@ -44,4 +44,4 @@ query getTheRedirection($uri: String!) {
 }
 ```
 
-`redirections` only returns active redirects: enabled redirects, in enabled groups of the WordPress module. Disabled redirects, and redirects in disabled groups or in Apache/Nginx groups, are left out.
+`redirections` (and `isRedirected`) only take active redirects into account: enabled redirects, in enabled groups of the WordPress module. Disabled redirects, and redirects in disabled groups or in Apache/Nginx groups, are left out.
