@@ -68,36 +68,53 @@ runs:
       run: |
         set -euo pipefail
 
+        fail() {
+          echo "::error::$1"
+          exit 1
+        }
+
         RB_PORT="${RB_PORT:-22}"
-        if [[ ! "${RB_PORT}" =~ ^[0-9]+$ ]]; then
-          echo "::error::Release Belt port must be numeric."
-          exit 1
+        if [[ ! "${RB_PORT}" =~ ^[0-9]{1,5}$ ]] || (( 10#${RB_PORT} < 1 || 10#${RB_PORT} > 65535 )); then
+          fail "Release Belt port must be a number between 1 and 65535."
         fi
+        RB_PORT="$(( 10#${RB_PORT} ))"
         if [[ "${RB_HOST}" == -* || "${RB_USER}" == -* ]]; then
-          echo "::error::Release Belt host and user must not start with '-'."
-          exit 1
+          fail "Release Belt host and user must not start with '-'."
         fi
-        # The tag ends up in a file name on the server: only allow safe characters.
-        if [[ ! "${RB_RELEASE_TAG}" =~ ^[0-9A-Za-z._+-]+$ ]]; then
-          echo "::error::Unexpected characters in release tag."
-          exit 1
-        fi
+        # These end up in file names / path segments on the server: only allow
+        # safe characters, and no '.' or '..' segments.
+        for segment in "${RB_RELEASE_TAG}" "${RB_PACKAGE_SLUG}" "${RB_PACKAGE_TYPE}" "${RB_PACKAGE_VENDOR}"; do
+          if [[ ! "${segment}" =~ ^[0-9A-Za-z._+-]+$ || "${segment}" == "." || "${segment}" == ".." ]]; then
+            fail "Unexpected characters in release tag or package slug/type/vendor."
+          fi
+        done
 
         RELEASE_BELT_ZIP="${RB_PACKAGE_SLUG}.${RB_RELEASE_TAG}.zip"
         cp "${RB_ZIP_FILE}" "${RELEASE_BELT_ZIP}"
 
         BASE_PATH="${RB_ROOT_PATH%/}"
         TARGET_DIR="${BASE_PATH}/releases/${RB_PACKAGE_TYPE}/${RB_PACKAGE_VENDOR}"
+        # The path is single-quoted for the remote shell below.
+        if [[ "${TARGET_DIR}" == *[[:cntrl:]\']* ]]; then
+          fail "Release Belt path must not contain quotes or control characters (check RELEASE_BELT_PATH for a trailing newline)."
+        fi
+        # A leading '~/' is turned into a path relative to the remote home
+        # directory, which both ssh and rsync resolve the same way (the path
+        # is quoted below, so the remote shell would not expand '~').
+        if [[ "${TARGET_DIR}" == \~/* ]]; then
+          TARGET_DIR="${TARGET_DIR#\~/}"
+        fi
 
-        SSH_DIR="${HOME}/.ssh"
-        KEY_FILE="${SSH_DIR}/release_belt_key"
-        KNOWN_HOSTS_FILE="${SSH_DIR}/release_belt_known_hosts"
+        # The private key and known_hosts live in a private temporary directory
+        # (mktemp -d is mode 700), removed whatever the outcome of the upload.
+        WORK_DIR="$(mktemp -d)"
+        trap 'rm -rf "${WORK_DIR}"' EXIT
+        if [[ "${WORK_DIR}" == *[[:space:]\'\"\\]* ]]; then
+          fail "Unexpected characters in temporary directory path."
+        fi
+        KEY_FILE="${WORK_DIR}/release_belt_key"
+        KNOWN_HOSTS_FILE="${WORK_DIR}/known_hosts"
 
-        mkdir -p "${SSH_DIR}"
-        chmod 700 "${SSH_DIR}"
-
-        # Remove the private key whatever the outcome of the upload.
-        trap 'rm -f "${KEY_FILE}"' EXIT
         (umask 077 && printf '%s\n' "${RB_SSH_KEY}" > "${KEY_FILE}")
 
         if [[ -n "${RB_KNOWN_HOSTS}" ]]; then
@@ -106,7 +123,6 @@ runs:
           echo "::warning title=Release Belt host key not pinned::RELEASE_BELT_KNOWN_HOSTS is not set, trusting the host key returned by ssh-keyscan. Set the secret to pin the server's host key."
           ssh-keyscan -p "${RB_PORT}" -H -- "${RB_HOST}" > "${KNOWN_HOSTS_FILE}"
         fi
-        chmod 644 "${KNOWN_HOSTS_FILE}"
 
         # Same options for ssh and rsync: only the pinned/scanned host keys and
         # the provided private key are used.
@@ -119,13 +135,12 @@ runs:
           -o "UserKnownHostsFile=${KNOWN_HOSTS_FILE}"
           -o GlobalKnownHostsFile=/dev/null
         )
-        # rsync -e takes a single string; rsync honours single quotes in it.
-        RSYNC_RSH="ssh"
-        for opt in "${SSH_OPTS[@]}"; do
-          RSYNC_RSH+=" '${opt}'"
-        done
+        # rsync -e takes a single string that rsync splits on spaces; none of
+        # the options above contain spaces or quotes (checked for WORK_DIR).
+        RSYNC_RSH="ssh ${SSH_OPTS[*]}"
 
-        ssh "${SSH_OPTS[@]}" -- "${RB_USER}@${RB_HOST}" "mkdir -p -- $(printf '%q' "${TARGET_DIR}")"
+        # Plain single quotes work in any remote login shell (TARGET_DIR has none).
+        ssh "${SSH_OPTS[@]}" -- "${RB_USER}@${RB_HOST}" "mkdir -p -- '${TARGET_DIR}'"
         rsync -avz -e "${RSYNC_RSH}" -- "${RELEASE_BELT_ZIP}" "${RB_USER}@${RB_HOST}:${TARGET_DIR}/"
 
     - name: Skip upload (missing required inputs)
