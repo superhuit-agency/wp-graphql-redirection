@@ -46,7 +46,9 @@ jobs:
             --exclude .editorconfig \
             --exclude .vscode \
             --exclude .wp-env.json \
+            --exclude /.agents \
             --exclude /tests \
+            --exclude /cliff.toml \
             --exclude composer.json \
             --exclude composer.lock \
             --exclude wp-graphql-redirection.pot \
