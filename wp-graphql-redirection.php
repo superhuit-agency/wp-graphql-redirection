@@ -133,6 +133,7 @@ class WPGraphQLRedirection {
 	private function init() {
 
 		new I18n();
+		new SmartCache();
 
 		add_action( 'graphql_register_types', [$this, 'register_types'] );
 	}
