@@ -14,7 +14,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # git-cliff needs the full history and tags to build the changelog
           fetch-depth: 0
@@ -28,7 +28,7 @@ jobs:
         env:
           COMPOSER_TOKEN: ${{ github.token }}
       - id: composer-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: vendor
           key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
@@ -99,7 +99,7 @@ jobs:
     needs: release
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Download release ZIP artifact
         uses: actions/download-artifact@v8
