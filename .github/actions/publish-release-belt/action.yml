@@ -28,12 +28,19 @@ inputs:
     description: "Release Belt SSH user"
     required: false
   port:
-    description: "Release Belt SSH port"
+    description: "Release Belt SSH port (an empty value falls back to 22)"
     required: false
     default: "22"
   ssh_key:
     description: "Private SSH key content"
     required: false
+  known_hosts:
+    description: >-
+      known_hosts entries for the Release Belt host (e.g. the output of
+      `ssh-keyscan -p <port> <host>` run from a trusted machine). When empty,
+      the host key is fetched with ssh-keyscan at run time (trust on first use).
+    required: false
+    default: ""
   root_path:
     description: "Release Belt root path on server"
     required: false
@@ -44,25 +51,97 @@ runs:
     - name: Upload ZIP
       if: ${{ inputs.host != '' && inputs.user != '' && inputs.ssh_key != '' && inputs.root_path != '' }}
       shell: bash
+      # Inputs are passed through the environment (never interpolated into the
+      # script) so that tag names or secret values cannot inject shell code.
+      env:
+        RB_RELEASE_TAG: ${{ inputs.release_tag }}
+        RB_ZIP_FILE: ${{ inputs.zip_file }}
+        RB_PACKAGE_SLUG: ${{ inputs.package_slug }}
+        RB_PACKAGE_VENDOR: ${{ inputs.package_vendor }}
+        RB_PACKAGE_TYPE: ${{ inputs.package_type }}
+        RB_HOST: ${{ inputs.host }}
+        RB_USER: ${{ inputs.user }}
+        RB_PORT: ${{ inputs.port }}
+        RB_SSH_KEY: ${{ inputs.ssh_key }}
+        RB_KNOWN_HOSTS: ${{ inputs.known_hosts }}
+        RB_ROOT_PATH: ${{ inputs.root_path }}
       run: |
-        VERSION="${{ inputs.release_tag }}"
-        RELEASE_BELT_ZIP="${{ inputs.package_slug }}.${VERSION}.zip"
+        set -euo pipefail
 
-        cp "${{ inputs.zip_file }}" "${RELEASE_BELT_ZIP}"
+        fail() {
+          echo "::error::$1"
+          exit 1
+        }
 
-        BASE_PATH="${{ inputs.root_path }}"
-        BASE_PATH="${BASE_PATH%/}"
-        TARGET_DIR="${BASE_PATH}/releases/${{ inputs.package_type }}/${{ inputs.package_vendor }}"
+        RB_PORT="${RB_PORT:-22}"
+        if [[ ! "${RB_PORT}" =~ ^[0-9]{1,5}$ ]] || (( 10#${RB_PORT} < 1 || 10#${RB_PORT} > 65535 )); then
+          fail "Release Belt port must be a number between 1 and 65535."
+        fi
+        RB_PORT="$(( 10#${RB_PORT} ))"
+        if [[ "${RB_HOST}" == -* || "${RB_USER}" == -* ]]; then
+          fail "Release Belt host and user must not start with '-'."
+        fi
+        # These end up in file names / path segments on the server: only allow
+        # safe characters, and no '.' or '..' segments.
+        for segment in "${RB_RELEASE_TAG}" "${RB_PACKAGE_SLUG}" "${RB_PACKAGE_TYPE}" "${RB_PACKAGE_VENDOR}"; do
+          if [[ ! "${segment}" =~ ^[0-9A-Za-z._+-]+$ || "${segment}" == "." || "${segment}" == ".." ]]; then
+            fail "Unexpected characters in release tag or package slug/type/vendor."
+          fi
+        done
 
-        mkdir -p ~/.ssh
-        chmod 700 ~/.ssh
-        printf '%s\n' "${{ inputs.ssh_key }}" > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan -p "${{ inputs.port }}" -H "${{ inputs.host }}" >> ~/.ssh/known_hosts
-        chmod 644 ~/.ssh/known_hosts
+        RELEASE_BELT_ZIP="${RB_PACKAGE_SLUG}.${RB_RELEASE_TAG}.zip"
+        cp "${RB_ZIP_FILE}" "${RELEASE_BELT_ZIP}"
 
-        ssh -p "${{ inputs.port }}" "${{ inputs.user }}@${{ inputs.host }}" "mkdir -p '${TARGET_DIR}'"
-        rsync -avz -e "ssh -p ${{ inputs.port }}" "${RELEASE_BELT_ZIP}" "${{ inputs.user }}@${{ inputs.host }}:${TARGET_DIR}/"
+        BASE_PATH="${RB_ROOT_PATH%/}"
+        TARGET_DIR="${BASE_PATH}/releases/${RB_PACKAGE_TYPE}/${RB_PACKAGE_VENDOR}"
+        # The path is single-quoted for the remote shell below.
+        if [[ "${TARGET_DIR}" == *[[:cntrl:]\']* ]]; then
+          fail "Release Belt path must not contain quotes or control characters (check RELEASE_BELT_PATH for a trailing newline)."
+        fi
+        # A leading '~/' is turned into a path relative to the remote home
+        # directory, which both ssh and rsync resolve the same way (the path
+        # is quoted below, so the remote shell would not expand '~').
+        if [[ "${TARGET_DIR}" == \~/* ]]; then
+          TARGET_DIR="${TARGET_DIR#\~/}"
+        fi
+
+        # The private key and known_hosts live in a private temporary directory
+        # (mktemp -d is mode 700), removed whatever the outcome of the upload.
+        WORK_DIR="$(mktemp -d)"
+        trap 'rm -rf "${WORK_DIR}"' EXIT
+        if [[ "${WORK_DIR}" == *[[:space:]\'\"\\]* ]]; then
+          fail "Unexpected characters in temporary directory path."
+        fi
+        KEY_FILE="${WORK_DIR}/release_belt_key"
+        KNOWN_HOSTS_FILE="${WORK_DIR}/known_hosts"
+
+        (umask 077 && printf '%s\n' "${RB_SSH_KEY}" > "${KEY_FILE}")
+
+        if [[ -n "${RB_KNOWN_HOSTS}" ]]; then
+          printf '%s\n' "${RB_KNOWN_HOSTS}" > "${KNOWN_HOSTS_FILE}"
+        else
+          echo "::warning title=Release Belt host key not pinned::RELEASE_BELT_KNOWN_HOSTS is not set, trusting the host key returned by ssh-keyscan. Set the secret to pin the server's host key."
+          ssh-keyscan -p "${RB_PORT}" -H -- "${RB_HOST}" > "${KNOWN_HOSTS_FILE}"
+        fi
+
+        # Same options for ssh and rsync: only the pinned/scanned host keys and
+        # the provided private key are used.
+        SSH_OPTS=(
+          -p "${RB_PORT}"
+          -i "${KEY_FILE}"
+          -o IdentitiesOnly=yes
+          -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o "UserKnownHostsFile=${KNOWN_HOSTS_FILE}"
+          -o GlobalKnownHostsFile=/dev/null
+        )
+        # rsync -e takes a single string that rsync splits on spaces; none of
+        # the options above contain spaces or quotes (checked for WORK_DIR).
+        RSYNC_RSH="ssh ${SSH_OPTS[*]}"
+
+        # Plain single quotes work in any remote login shell (TARGET_DIR has none).
+        ssh "${SSH_OPTS[@]}" -- "${RB_USER}@${RB_HOST}" "mkdir -p -- '${TARGET_DIR}'"
+        rsync -avz -e "${RSYNC_RSH}" -- "${RELEASE_BELT_ZIP}" "${RB_USER}@${RB_HOST}:${TARGET_DIR}/"
 
     - name: Skip upload (missing required inputs)
       if: ${{ inputs.host == '' || inputs.user == '' || inputs.ssh_key == '' || inputs.root_path == '' }}
