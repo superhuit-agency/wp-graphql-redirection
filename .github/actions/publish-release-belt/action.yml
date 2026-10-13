@@ -28,12 +28,19 @@ inputs:
     description: "Release Belt SSH user"
     required: false
   port:
-    description: "Release Belt SSH port"
+    description: "Release Belt SSH port (an empty value falls back to 22)"
     required: false
     default: "22"
   ssh_key:
     description: "Private SSH key content"
     required: false
+  known_hosts:
+    description: >-
+      known_hosts entries for the Release Belt host (e.g. the output of
+      `ssh-keyscan -p <port> <host>` run from a trusted machine). When empty,
+      the host key is fetched with ssh-keyscan at run time (trust on first use).
+    required: false
+    default: ""
   root_path:
     description: "Release Belt root path on server"
     required: false
@@ -44,25 +51,82 @@ runs:
     - name: Upload ZIP
       if: ${{ inputs.host != '' && inputs.user != '' && inputs.ssh_key != '' && inputs.root_path != '' }}
       shell: bash
+      # Inputs are passed through the environment (never interpolated into the
+      # script) so that tag names or secret values cannot inject shell code.
+      env:
+        RB_RELEASE_TAG: ${{ inputs.release_tag }}
+        RB_ZIP_FILE: ${{ inputs.zip_file }}
+        RB_PACKAGE_SLUG: ${{ inputs.package_slug }}
+        RB_PACKAGE_VENDOR: ${{ inputs.package_vendor }}
+        RB_PACKAGE_TYPE: ${{ inputs.package_type }}
+        RB_HOST: ${{ inputs.host }}
+        RB_USER: ${{ inputs.user }}
+        RB_PORT: ${{ inputs.port }}
+        RB_SSH_KEY: ${{ inputs.ssh_key }}
+        RB_KNOWN_HOSTS: ${{ inputs.known_hosts }}
+        RB_ROOT_PATH: ${{ inputs.root_path }}
       run: |
-        VERSION="${{ inputs.release_tag }}"
-        RELEASE_BELT_ZIP="${{ inputs.package_slug }}.${VERSION}.zip"
+        set -euo pipefail
 
-        cp "${{ inputs.zip_file }}" "${RELEASE_BELT_ZIP}"
+        RB_PORT="${RB_PORT:-22}"
+        if [[ ! "${RB_PORT}" =~ ^[0-9]+$ ]]; then
+          echo "::error::Release Belt port must be numeric."
+          exit 1
+        fi
+        if [[ "${RB_HOST}" == -* || "${RB_USER}" == -* ]]; then
+          echo "::error::Release Belt host and user must not start with '-'."
+          exit 1
+        fi
+        # The tag ends up in a file name on the server: only allow safe characters.
+        if [[ ! "${RB_RELEASE_TAG}" =~ ^[0-9A-Za-z._+-]+$ ]]; then
+          echo "::error::Unexpected characters in release tag."
+          exit 1
+        fi
 
-        BASE_PATH="${{ inputs.root_path }}"
-        BASE_PATH="${BASE_PATH%/}"
-        TARGET_DIR="${BASE_PATH}/releases/${{ inputs.package_type }}/${{ inputs.package_vendor }}"
+        RELEASE_BELT_ZIP="${RB_PACKAGE_SLUG}.${RB_RELEASE_TAG}.zip"
+        cp "${RB_ZIP_FILE}" "${RELEASE_BELT_ZIP}"
 
-        mkdir -p ~/.ssh
-        chmod 700 ~/.ssh
-        printf '%s\n' "${{ inputs.ssh_key }}" > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan -p "${{ inputs.port }}" -H "${{ inputs.host }}" >> ~/.ssh/known_hosts
-        chmod 644 ~/.ssh/known_hosts
+        BASE_PATH="${RB_ROOT_PATH%/}"
+        TARGET_DIR="${BASE_PATH}/releases/${RB_PACKAGE_TYPE}/${RB_PACKAGE_VENDOR}"
 
-        ssh -p "${{ inputs.port }}" "${{ inputs.user }}@${{ inputs.host }}" "mkdir -p '${TARGET_DIR}'"
-        rsync -avz -e "ssh -p ${{ inputs.port }}" "${RELEASE_BELT_ZIP}" "${{ inputs.user }}@${{ inputs.host }}:${TARGET_DIR}/"
+        SSH_DIR="${HOME}/.ssh"
+        KEY_FILE="${SSH_DIR}/release_belt_key"
+        KNOWN_HOSTS_FILE="${SSH_DIR}/release_belt_known_hosts"
+
+        mkdir -p "${SSH_DIR}"
+        chmod 700 "${SSH_DIR}"
+
+        # Remove the private key whatever the outcome of the upload.
+        trap 'rm -f "${KEY_FILE}"' EXIT
+        (umask 077 && printf '%s\n' "${RB_SSH_KEY}" > "${KEY_FILE}")
+
+        if [[ -n "${RB_KNOWN_HOSTS}" ]]; then
+          printf '%s\n' "${RB_KNOWN_HOSTS}" > "${KNOWN_HOSTS_FILE}"
+        else
+          echo "::warning title=Release Belt host key not pinned::RELEASE_BELT_KNOWN_HOSTS is not set, trusting the host key returned by ssh-keyscan. Set the secret to pin the server's host key."
+          ssh-keyscan -p "${RB_PORT}" -H -- "${RB_HOST}" > "${KNOWN_HOSTS_FILE}"
+        fi
+        chmod 644 "${KNOWN_HOSTS_FILE}"
+
+        # Same options for ssh and rsync: only the pinned/scanned host keys and
+        # the provided private key are used.
+        SSH_OPTS=(
+          -p "${RB_PORT}"
+          -i "${KEY_FILE}"
+          -o IdentitiesOnly=yes
+          -o BatchMode=yes
+          -o StrictHostKeyChecking=yes
+          -o "UserKnownHostsFile=${KNOWN_HOSTS_FILE}"
+          -o GlobalKnownHostsFile=/dev/null
+        )
+        # rsync -e takes a single string; rsync honours single quotes in it.
+        RSYNC_RSH="ssh"
+        for opt in "${SSH_OPTS[@]}"; do
+          RSYNC_RSH+=" '${opt}'"
+        done
+
+        ssh "${SSH_OPTS[@]}" -- "${RB_USER}@${RB_HOST}" "mkdir -p -- $(printf '%q' "${TARGET_DIR}")"
+        rsync -avz -e "${RSYNC_RSH}" -- "${RELEASE_BELT_ZIP}" "${RB_USER}@${RB_HOST}:${TARGET_DIR}/"
 
     - name: Skip upload (missing required inputs)
       if: ${{ inputs.host == '' || inputs.user == '' || inputs.ssh_key == '' || inputs.root_path == '' }}
