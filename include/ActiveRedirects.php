@@ -29,27 +29,34 @@ class ActiveRedirects {
 	 * @return Red_Item[]
 	 */
 	public static function get_for_matched_url( $url ) {
+		$items = Red_Item::get_for_matched_url( $url );
+
+		if ( empty( $items ) ) {
+			return [];
+		}
+
 		$group_ids = self::get_group_ids();
 
-		return array_values( array_filter( Red_Item::get_for_matched_url( $url ), function( $item ) use ( $group_ids ) {
+		return array_values( array_filter( $items, function( $item ) use ( $group_ids ) {
 			return isset( $group_ids[ $item->get_group_id() ] );
 		} ) );
 	}
 
 	/**
-	 * Get the IDs of the enabled groups of the WordPress module, as keys. Cached for the request.
+	 * Get the IDs of the enabled groups of the WordPress module, as keys.
+	 * Cached for the request, per site (the table prefix changes with switch_to_blog()).
 	 *
 	 * @return array<int, int>
 	 */
 	private static function get_group_ids() {
 		global $wpdb;
-		static $group_ids = null;
+		static $group_ids = [];
 
-		if ( $group_ids === null ) {
+		if ( ! isset( $group_ids[ $wpdb->prefix ] ) ) {
 			$ids = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}redirection_groups WHERE module_id=%d AND status='enabled'", WordPress_Module::MODULE_ID ) );
-			$group_ids = array_flip( array_map( 'intval', $ids ) );
+			$group_ids[ $wpdb->prefix ] = array_flip( array_map( 'intval', $ids ) );
 		}
 
-		return $group_ids;
+		return $group_ids[ $wpdb->prefix ];
 	}
 }

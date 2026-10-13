@@ -25,7 +25,8 @@ class NodeWithIsRedirected {
 							 * Replicates what Redirection does to check if the current URL is redirected
 							 * @see https://github.com/johngodley/redirection/blob/8a4b91fa8eabdf0c0d9d03cbbddcbfb0d91e046d/modules/wordpress.php#L334-L340
 							 *
-							 * Only active redirects are checked, like the `redirections` field.
+							 * Only active redirects are checked, like the `redirections` field. Redirection itself
+							 * also runs enabled redirects whose group is disabled or in the Apache/Nginx modules.
 							 */
 							$original_url = $source->link;
 
