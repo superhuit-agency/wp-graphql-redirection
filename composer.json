@@ -48,6 +48,9 @@
         "wpackagist-plugin/redirection": "^5.3"
     },
     "scripts": {
-        "test": "php tests/SmartCacheTest.php"
+        "test": [
+            "php tests/SmartCacheTest.php",
+            "php tests/ActiveRedirectsTest.php"
+        ]
     }
 }

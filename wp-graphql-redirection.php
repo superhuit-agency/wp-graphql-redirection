@@ -20,7 +20,6 @@
 
 namespace WPGraphQLRedirection;
 
-use Red_Item;
 use WPGraphQL\Type\InterfaceType\NodeWithIsRedirected;
 use WPGraphQLRedirection\Type\ObjectType\RedirectionItem;
 use WPGraphQLRedirection\Model\RedirectionItem as RedirectionItemModel;
@@ -154,9 +153,10 @@ class WPGraphQLRedirection {
 			'description' => __( 'List of redirections.', 'wpgraphql-redirection' ),
 			'resolve'     => function($source, $args, $context, $info) {
 
+				// Only expose active redirects: enabled, in enabled groups of the WordPress module.
 				$items = isset($args['uri'])
-					? Red_Item::get_for_matched_url( $args['uri'] )
-					: Red_Item::get_all();
+					? ActiveRedirects::get_for_matched_url( $args['uri'] )
+					: ActiveRedirects::get_all();
 
 
 				if ( isset($args['uri']) ) {

@@ -44,6 +44,8 @@ query getTheRedirection($uri: String!) {
 }
 ```
 
+`redirections` (and `isRedirected`) only take active redirects into account: enabled redirects, in enabled groups of the WordPress module. Disabled redirects, and redirects in disabled groups or in Apache/Nginx groups, are left out.
+
 ## WPGraphQL Smart Cache
 
 When [WPGraphQL Smart Cache](https://wordpress.org/plugins/wpgraphql-smart-cache/) is active, queries selecting `redirections` are not object-cached, and they are not tagged with the `list:redirectionitemtype` list type. Frontends usually look up `redirections(uri:)` on every page render, so that shared cache collection would otherwise grow with every URL rendered, and nothing purges it when a redirect changes. Redirects take effect on the next lookup that reaches WordPress (a network cache in front of GET requests still keeps responses for their max-age).

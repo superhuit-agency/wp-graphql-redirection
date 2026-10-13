@@ -1,7 +1,7 @@
 <?php
 namespace WPGraphQL\Type\InterfaceType;
 
-use Red_Item;
+use WPGraphQLRedirection\ActiveRedirects;
 
 class NodeWithIsRedirected {
 
@@ -24,6 +24,9 @@ class NodeWithIsRedirected {
 							/**
 							 * Replicates what Redirection does to check if the current URL is redirected
 							 * @see https://github.com/johngodley/redirection/blob/8a4b91fa8eabdf0c0d9d03cbbddcbfb0d91e046d/modules/wordpress.php#L334-L340
+							 *
+							 * Only active redirects are checked, like the `redirections` field. Redirection itself
+							 * also runs enabled redirects whose group is disabled or in the Apache/Nginx modules.
 							 */
 							$original_url = $source->link;
 
@@ -35,7 +38,7 @@ class NodeWithIsRedirected {
 							$isRedirected = false;
 							$decoded_url  = rawurldecode( $original_url );
 
-							$items = Red_Item::get_for_matched_url( $decoded_url );
+							$items = ActiveRedirects::get_for_matched_url( $decoded_url );
 
 							$i = 0;
 							while ( $isRedirected === false && $i < count($items) ) {
