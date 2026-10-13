@@ -36,9 +36,11 @@ inputs:
     required: false
   known_hosts:
     description: >-
-      known_hosts entries for the Release Belt host (e.g. the output of
-      `ssh-keyscan -p <port> <host>` run from a trusted machine). When empty,
-      the host key is fetched with ssh-keyscan at run time (trust on first use).
+      known_hosts entries for the Release Belt host: the output of
+      `ssh-keyscan -p <port> <host>` run from a trusted machine, with the
+      fingerprint checked against the server's real one. Required whenever the
+      upload runs. If the server's host key changes, the upload fails until
+      this is updated.
     required: false
     default: ""
   root_path:
@@ -72,6 +74,11 @@ runs:
           echo "::error::$1"
           exit 1
         }
+
+        # No trust on first use: without a pinned host key, refuse to connect.
+        if [[ -z "${RB_KNOWN_HOSTS//[[:space:]]/}" ]]; then
+          fail "RELEASE_BELT_KNOWN_HOSTS is empty. Set it to the output of 'ssh-keyscan -p <port> <host>' run from a trusted machine, after checking the fingerprint against the server's."
+        fi
 
         RB_PORT="${RB_PORT:-22}"
         if [[ ! "${RB_PORT}" =~ ^[0-9]{1,5}$ ]] || (( 10#${RB_PORT} < 1 || 10#${RB_PORT} > 65535 )); then
@@ -117,15 +124,10 @@ runs:
 
         (umask 077 && printf '%s\n' "${RB_SSH_KEY}" > "${KEY_FILE}")
 
-        if [[ -n "${RB_KNOWN_HOSTS}" ]]; then
-          printf '%s\n' "${RB_KNOWN_HOSTS}" > "${KNOWN_HOSTS_FILE}"
-        else
-          echo "::warning title=Release Belt host key not pinned::RELEASE_BELT_KNOWN_HOSTS is not set, trusting the host key returned by ssh-keyscan. Set the secret to pin the server's host key."
-          ssh-keyscan -p "${RB_PORT}" -H -- "${RB_HOST}" > "${KNOWN_HOSTS_FILE}"
-        fi
+        printf '%s\n' "${RB_KNOWN_HOSTS}" > "${KNOWN_HOSTS_FILE}"
 
-        # Same options for ssh and rsync: only the pinned/scanned host keys and
-        # the provided private key are used.
+        # Same options for ssh and rsync: only the pinned host keys and the
+        # provided private key are used.
         SSH_OPTS=(
           -p "${RB_PORT}"
           -i "${KEY_FILE}"
