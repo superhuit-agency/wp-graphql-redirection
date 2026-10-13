@@ -5,7 +5,7 @@ Requires at least: 5.0
 Tested up to: 6.1
 Requires PHP: 7.4
 Requires Plugins: redirection, wp-graphql
-Stable tag: 2.0.2
+Stable tag: 2.0.3
 license: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -13,6 +13,13 @@ Exposes Redirection plugin in the GraphQL schema.
 
 
 == Changelog ==
+
+= 2.0.3 =
+* Security: only expose active redirects (enabled, in enabled groups of the WordPress module) in redirections and isRedirected. Disabled redirects and redirects in disabled or Apache/Nginx groups are no longer listed, and isRedirected ignores them.
+* GraphQL lookups no longer record hits on hidden redirects.
+* Fix unbounded WPGraphQL Smart Cache growth caused by redirections lookups, and skip the object cache for those queries so new redirects are picked up on the next lookup.
+* Fix the plugin not loading when Redirection runs in refactor mode (Red_Item class detection was case-sensitive).
+* Harden the release pipeline.
 
 = 2.0.2 =
 * Fix empty release notes and add Dependabot for dependency and security updates.
