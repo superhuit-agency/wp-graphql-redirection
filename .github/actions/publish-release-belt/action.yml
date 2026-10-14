@@ -36,11 +36,13 @@ inputs:
     required: false
   known_hosts:
     description: >-
-      known_hosts entries for the Release Belt host: the output of
-      `ssh-keyscan -p <port> <host>` run from a trusted machine, with the
-      fingerprint checked against the server's real one. Required whenever the
-      upload runs. If the server's host key changes, the upload fails until
-      this is updated.
+      known_hosts entries for the Release Belt host. Required whenever the
+      upload runs (no trust on first use). Generate them with
+      `ssh-keyscan -p <port> <host>`, using the same host and port as the
+      upload, from a trusted machine, and have someone with access to the
+      Release Belt server confirm the fingerprints out of band. If the
+      server's host key changes, the upload fails until the entries are
+      regenerated the same way.
     required: false
     default: ""
   root_path:
