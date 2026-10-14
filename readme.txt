@@ -5,7 +5,7 @@ Requires at least: 5.0
 Tested up to: 6.1
 Requires PHP: 7.4
 Requires Plugins: redirection, wp-graphql
-Stable tag: 2.0.3
+Stable tag: 2.0.4
 license: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -13,6 +13,9 @@ Exposes Redirection plugin in the GraphQL schema.
 
 
 == Changelog ==
+
+= 2.0.4 =
+* Require a pinned Release Belt host key in the release pipeline.
 
 = 2.0.3 =
 * Security: only expose active redirects (enabled, in enabled groups of the WordPress module) in redirections and isRedirected. Disabled redirects and redirects in disabled or Apache/Nginx groups are no longer listed, and isRedirected ignores them.
