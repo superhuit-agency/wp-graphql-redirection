@@ -77,7 +77,7 @@ runs:
 
         # No trust on first use: without a pinned host key, refuse to connect.
         if [[ -z "${RB_KNOWN_HOSTS//[[:space:]]/}" ]]; then
-          fail "RELEASE_BELT_KNOWN_HOSTS is empty. Set it to the output of 'ssh-keyscan -p <port> <host>' run from a trusted machine, after checking the fingerprint against the server's."
+          fail "RELEASE_BELT_KNOWN_HOSTS is empty. It is an organization secret; check it is set and shared with this repository. Its value is the output of 'ssh-keyscan -p <port> <host>' run from a trusted machine, after checking the fingerprint against the server's."
         fi
 
         RB_PORT="${RB_PORT:-22}"
